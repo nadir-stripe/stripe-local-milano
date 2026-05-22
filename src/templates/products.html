@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Olio d'Oro — Prodotti</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bosco-50: #f4f7f4;
+      --bosco-100: #e6ede5;
+      --bosco-600: #3d6b3a;
+      --bosco-800: #1e3a1c;
+      --bosco-900: #142813;
+      --bosco-950: #0a1a09;
+      --oro-300: #e8d48b;
+      --oro-400: #d4b84a;
+      --oro-500: #b89a2e;
+      --stone-50: #fafaf9;
+      --stone-100: #f5f5f4;
+      --stone-200: #e7e5e4;
+      --stone-500: #78716c;
+      --stone-700: #44403c;
+      --stone-900: #1c1917;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: var(--stone-50);
+      color: var(--stone-900);
+      padding: 24px;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+
+    .header h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--bosco-800);
+    }
+
+    .header p {
+      font-size: 0.85rem;
+      color: var(--stone-500);
+      margin-top: 4px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 16px;
+    }
+
+    .card {
+      background: white;
+      border-radius: 12px;
+      border: 1px solid var(--stone-200);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      transition: box-shadow 0.2s, transform 0.2s;
+    }
+
+    .card:hover {
+      box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+      transform: translateY(-2px);
+    }
+
+    .card-img {
+      width: 100%;
+      height: 160px;
+      object-fit: cover;
+      background: var(--bosco-50);
+    }
+
+    .card-img-placeholder {
+      width: 100%;
+      height: 160px;
+      background: linear-gradient(135deg, var(--bosco-100), var(--stone-100));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 3rem;
+    }
+
+    .card-body {
+      padding: 16px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .card-category {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--bosco-600);
+      font-weight: 600;
+    }
+
+    .card-name {
+      font-family: 'Playfair Display', serif;
+      font-size: 1rem;
+      font-weight: 500;
+      margin-top: 4px;
+      color: var(--stone-900);
+    }
+
+    .card-desc {
+      font-size: 0.8rem;
+      color: var(--stone-500);
+      margin-top: 6px;
+      line-height: 1.4;
+      flex: 1;
+    }
+
+    .card-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 12px;
+    }
+
+    .card-price {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--bosco-800);
+    }
+
+    .btn-buy {
+      background: var(--bosco-800);
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .btn-buy:hover {
+      background: var(--bosco-600);
+    }
+
+    .empty {
+      text-align: center;
+      padding: 48px 24px;
+      color: var(--stone-500);
+    }
+
+    .empty p { font-size: 0.9rem; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Olio d'Oro</h1>
+    <p>L'Eccellenza Italiana dal 1847</p>
+  </div>
+
+  <div id="products-grid" class="grid"></div>
+  <div id="empty" class="empty" style="display:none">
+    <p>Nessun prodotto trovato.</p>
+  </div>
+
+  <script>
+    function formatPrice(amount, currency) {
+      const val = (amount / 100).toFixed(2);
+      const sym = currency === 'eur' ? '€' : currency === 'usd' ? '$' : currency.toUpperCase() + ' ';
+      return `${sym}${val}`;
+    }
+
+    function renderProducts(products) {
+      const grid = document.getElementById('products-grid');
+      const empty = document.getElementById('empty');
+
+      if (!products || products.length === 0) {
+        grid.style.display = 'none';
+        empty.style.display = 'block';
+        return;
+      }
+
+      grid.innerHTML = products.map(p => `
+        <div class="card">
+          ${p.image
+            ? `<img class="card-img" src="${p.image}" alt="${p.name}" />`
+            : `<div class="card-img-placeholder">🫒</div>`
+          }
+          <div class="card-body">
+            ${p.category ? `<span class="card-category">${p.category}</span>` : ''}
+            <h3 class="card-name">${p.name}</h3>
+            ${p.description ? `<p class="card-desc">${p.description}</p>` : ''}
+            ${p.size ? `<p class="card-desc">${p.size}</p>` : ''}
+            <div class="card-footer">
+              <span class="card-price">${formatPrice(p.unitAmount, p.currency)}</span>
+              <button class="btn-buy" data-price-id="${p.priceId}" data-name="${p.name}">Acquista</button>
+            </div>
+          </div>
+        </div>
+      `).join('');
+
+      grid.querySelectorAll('.btn-buy').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const priceId = btn.dataset.priceId;
+          const productName = btn.dataset.name;
+          window.__mcp_call_tool('checkout', { priceId, productName });
+        });
+      });
+    }
+
+    // Listen for structured content from ChatGPT
+    window.addEventListener('message', (event) => {
+      if (event.data?.type === 'ui/notifications/tool-result') {
+        const sc = event.data?.result?.structuredContent;
+        if (sc?.products) {
+          renderProducts(sc.products);
+        }
+        if (sc?.url) {
+          window.open(sc.url, '_blank');
+        }
+      }
+    });
+
+    // MCP tool call helper
+    window.__mcp_call_tool = function(name, args) {
+      window.parent.postMessage({
+        type: 'tools/call',
+        tool: name,
+        arguments: args,
+      }, '*');
+    };
+  </script>
+</body>
+</html>
