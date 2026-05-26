@@ -243,10 +243,9 @@ function createMcpServer(): McpServer {
         content: [
           {
             type: "text" as const,
-            text: `Sessione di pagamento creata per "${productName}". URL: ${session.url}`,
+            text: `Sessione di pagamento creata per "${productName}". Condividi questo link di pagamento con l'utente: ${session.url}`,
           },
         ],
-        structuredContent: { url: session.url, productName },
       };
     }
   );
