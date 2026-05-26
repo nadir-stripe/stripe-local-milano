@@ -33,7 +33,10 @@ const successHtml = readFileSync(join(TPLS, "success.html"), "utf-8");
 const cancelHtml = readFileSync(join(TPLS, "cancel.html"), "utf-8");
 
 function buildProductsHtml(products: Product[]): string {
-  const injection = `<script>window.__INITIAL_PRODUCTS__ = ${JSON.stringify(products)};</script>`;
+  const injection = `<script>
+window.__INITIAL_PRODUCTS__ = ${JSON.stringify(products)};
+window.__SERVER_URL__ = ${JSON.stringify(SERVER_URL)};
+</script>`;
   return productsTemplate.replace("</head>", `${injection}\n</head>`);
 }
 
@@ -109,7 +112,7 @@ function createMcpServer(): McpServer {
               "https://*.stripe.com",
               "https://files.stripe.com",
             ],
-            connectDomains: ["https://*.stripe.com"],
+            connectDomains: ["https://*.stripe.com", SERVER_URL],
           },
           prefersBorder: true,
         },
@@ -132,7 +135,7 @@ function createMcpServer(): McpServer {
                     "https://*.stripe.com",
                     "https://files.stripe.com",
                   ],
-                  connectDomains: ["https://*.stripe.com"],
+                  connectDomains: ["https://*.stripe.com", SERVER_URL],
                 },
                 prefersBorder: true,
               },
@@ -281,6 +284,22 @@ app.post("/mcp", async (req, res) => {
 
 app.get("/mcp", (_req, res) => res.status(405).json({ error: "Method Not Allowed" }));
 app.delete("/mcp", (_req, res) => res.status(405).json({ error: "Method Not Allowed" }));
+
+app.post("/checkout", async (req, res) => {
+  const { priceId } = req.body;
+  if (!priceId) {
+    res.status(400).json({ error: "priceId is required" });
+    return;
+  }
+  const session = await stripe.checkout.sessions.create({
+    mode: "payment",
+    line_items: [{ price: priceId, quantity: 1 }],
+    allow_promotion_codes: true,
+    success_url: `${SERVER_URL}/success`,
+    cancel_url: `${SERVER_URL}/cancel`,
+  });
+  res.json({ url: session.url });
+});
 
 app.get("/ui", async (_req, res) => {
   const products = await fetchProducts();

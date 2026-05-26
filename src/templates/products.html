@@ -208,10 +208,24 @@
       `).join('');
 
       grid.querySelectorAll('.btn-buy').forEach(btn => {
-        btn.addEventListener('click', () => {
+        btn.addEventListener('click', async () => {
           const priceId = btn.dataset.priceId;
-          const productName = btn.dataset.name;
-          window.__mcp_call_tool('checkout', { priceId, productName });
+          btn.disabled = true;
+          btn.textContent = '…';
+          try {
+            const res = await fetch(`${window.__SERVER_URL__}/checkout`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ priceId }),
+            });
+            const { url } = await res.json();
+            if (url) window.open(url, '_blank');
+          } catch (e) {
+            console.error('Checkout failed', e);
+          } finally {
+            btn.disabled = false;
+            btn.textContent = 'Acquista';
+          }
         });
       });
     }
