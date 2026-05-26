@@ -216,16 +216,34 @@
       });
     }
 
-    // Listen for structured content from ChatGPT
+    // Render initial products embedded by the server
+    if (window.__INITIAL_PRODUCTS__ && window.__INITIAL_PRODUCTS__.length > 0) {
+      renderProducts(window.__INITIAL_PRODUCTS__);
+    }
+
+    // Listen for filtered results from tool calls
     window.addEventListener('message', (event) => {
-      if (event.data?.type === 'ui/notifications/tool-result') {
-        const sc = event.data?.result?.structuredContent;
-        if (sc?.products) {
-          renderProducts(sc.products);
+      const data = event.data;
+      if (!data) return;
+
+      // Handle structured content from tool results (multiple possible formats)
+      const sc = data?.result?.structuredContent
+        || data?.structuredContent
+        || data?.content?.structuredContent;
+      if (sc?.products) {
+        renderProducts(sc.products);
+        return;
+      }
+
+      if (data?.type === 'ui/notifications/tool-result') {
+        const toolSc = data?.result?.structuredContent;
+        if (toolSc?.products) {
+          renderProducts(toolSc.products);
         }
-        if (sc?.url) {
-          window.open(sc.url, '_blank');
-        }
+      }
+
+      if (sc?.url || data?.result?.url) {
+        window.open(sc?.url || data.result.url, '_blank');
       }
     });
 

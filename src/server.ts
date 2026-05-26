@@ -28,9 +28,14 @@ if (!STRIPE_KEY) {
 const stripe = new Stripe(STRIPE_KEY);
 
 const TPLS = join(__dirname, "templates");
-const productsHtml = readFileSync(join(TPLS, "products.html"), "utf-8");
+const productsTemplate = readFileSync(join(TPLS, "products.html"), "utf-8");
 const successHtml = readFileSync(join(TPLS, "success.html"), "utf-8");
 const cancelHtml = readFileSync(join(TPLS, "cancel.html"), "utf-8");
+
+function buildProductsHtml(products: Product[]): string {
+  const injection = `<script>window.__INITIAL_PRODUCTS__ = ${JSON.stringify(products)};</script>`;
+  return productsTemplate.replace("</head>", `${injection}\n</head>`);
+}
 
 const PRODUCTS_RESOURCE_URI = "ui://widget/olio-doro-products";
 
@@ -102,6 +107,7 @@ function createMcpServer(): McpServer {
               "https://fonts.googleapis.com",
               "https://fonts.gstatic.com",
               "https://*.stripe.com",
+              "https://files.stripe.com",
             ],
             connectDomains: ["https://*.stripe.com"],
           },
@@ -109,29 +115,33 @@ function createMcpServer(): McpServer {
         },
       },
     },
-    async () => ({
-      contents: [
-        {
-          uri: PRODUCTS_RESOURCE_URI,
-          mimeType: RESOURCE_MIME_TYPE,
-          text: productsHtml,
-          _meta: {
-            ui: {
-              csp: {
-                resourceDomains: [
-                  "https://fonts.googleapis.com",
-                  "https://fonts.gstatic.com",
-                  "https://*.stripe.com",
-                ],
-                connectDomains: ["https://*.stripe.com"],
+    async () => {
+      const products = await fetchProducts();
+      return {
+        contents: [
+          {
+            uri: PRODUCTS_RESOURCE_URI,
+            mimeType: RESOURCE_MIME_TYPE,
+            text: buildProductsHtml(products),
+            _meta: {
+              ui: {
+                csp: {
+                  resourceDomains: [
+                    "https://fonts.googleapis.com",
+                    "https://fonts.gstatic.com",
+                    "https://*.stripe.com",
+                    "https://files.stripe.com",
+                  ],
+                  connectDomains: ["https://*.stripe.com"],
+                },
+                prefersBorder: true,
               },
-              prefersBorder: true,
+              domain: SERVER_URL,
             },
-            domain: SERVER_URL,
           },
-        },
-      ],
-    })
+        ],
+      };
+    }
   );
 
   registerAppTool(
@@ -182,11 +192,15 @@ function createMcpServer(): McpServer {
         };
       }
 
+      const productList = results
+        .map((p) => `- ${p.name} (${p.category ?? "altro"}, ${p.size ?? ""}) — €${((p.unitAmount ?? 0) / 100).toFixed(2)} [priceId: ${p.priceId}]`)
+        .join("\n");
+
       return {
         content: [
           {
             type: "text" as const,
-            text: `Trovati ${results.length} prodotti per "${query}".`,
+            text: `Trovati ${results.length} prodotti.\n\n${productList}\n\nIMPORTANT: When the user wants to buy a product, you MUST use the "checkout" tool with the priceId and productName. Do NOT generate URLs yourself — the checkout tool creates a real Stripe payment link. Never invent or hallucinate checkout URLs.`,
           },
         ],
         structuredContent: {
@@ -204,7 +218,7 @@ function createMcpServer(): McpServer {
     {
       title: "Acquista prodotto",
       description:
-        "Crea una sessione di pagamento Stripe per un prodotto e restituisce l'URL di pagamento sicuro.",
+        "MUST be called when the user wants to buy/purchase a product. Creates a real Stripe checkout session and returns the payment URL. Never generate URLs manually — always use this tool for purchases.",
       inputSchema: {
         priceId: z.string().describe("ID del prezzo Stripe del prodotto da acquistare"),
         productName: z.string().describe("Nome leggibile del prodotto per conferma"),
@@ -268,7 +282,10 @@ app.post("/mcp", async (req, res) => {
 app.get("/mcp", (_req, res) => res.status(405).json({ error: "Method Not Allowed" }));
 app.delete("/mcp", (_req, res) => res.status(405).json({ error: "Method Not Allowed" }));
 
-app.get("/ui", (_req, res) => res.send(productsHtml));
+app.get("/ui", async (_req, res) => {
+  const products = await fetchProducts();
+  res.send(buildProductsHtml(products));
+});
 app.get("/success", (_req, res) => res.send(successHtml));
 app.get("/cancel", (_req, res) => res.send(cancelHtml));
 app.get("/", (_req, res) => res.send("Olio d'Oro MCP server — POST /mcp"));
