@@ -233,8 +233,7 @@ function createMcpServer(): McpServer {
       },
       _meta: {
         ui: {
-          resourceUri: PRODUCTS_RESOURCE_URI,
-          visibility: ["app", "model"],
+          visibility: ["model"],
         },
         "openai/toolInvocation/invoking": "Preparando il pagamento…",
         "openai/toolInvocation/invoked": "Sessione di pagamento pronta",
